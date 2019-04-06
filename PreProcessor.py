@@ -1,10 +1,14 @@
 import pandas as pd
+
 from FeaturesUtils import *
 
 
 class PreProcessor:
 
     def __init__(self, raw_train_df, raw_test_df, cols_to_consider, target_feature):
+        self.raw_train_df = raw_train_df
+        self.raw_test_df = raw_test_df
+
         self.clean_train_df = raw_train_df
         self.clean_test_df = raw_test_df
         self.target_feature = target_feature
@@ -60,37 +64,61 @@ class PreProcessor:
     def handle_features(df: pd.DataFrame):
         # HouseStyle: Style of dwelling
         df['NumOfStories'] = df['HouseStyle'].apply(lambda x: get_num_of_stories(x))
+
         # YearBuilt: Construction year - house age
         df['HouseAge'] = df['YearBuilt'].apply(lambda x: get_house_age(x))
+
         # Was the house renovated in  the last 10 years
-        df['HouseWasRenovated'] = df[['YearRemodAdd', 'YearBuilt']].apply(lambda x: was_the_house_renovated(x['YearBuilt'], x['YearRemodAdd']), axis=1)
+        df['HouseWasRenovated'] = df[['YearRemodAdd', 'YearBuilt']].apply(
+            lambda x: was_the_house_renovated(x['YearBuilt'], x['YearRemodAdd']), axis=1)
+
         # Does the property have an alley?
         df['HouseHasAlley'] = df['Alley'].apply(lambda x: has_house_feature(x))
+
         # Adjacent to arterial location (road, transportation facilities)
-        df['AdjacentArterial'] = df[['Condition1', 'Condition2']].apply(lambda x: adjacent_to_artery(x['Condition1'], x['Condition2']), axis=1)
+        df['AdjacentArterial'] = df[['Condition1', 'Condition2']].apply(
+            lambda x: adjacent_to_artery(x['Condition1'], x['Condition2']), axis=1)
+
         # Adjacent to off-site locations (parks, greenbelts)
-        df['AdjacentOffSites'] = df[['Condition1', 'Condition2']].apply(lambda x: adjacent_to_off_sites(x['Condition1'], x['Condition2']), axis=1)
+        df['AdjacentOffSites'] = df[['Condition1', 'Condition2']].apply(
+            lambda x: adjacent_to_off_sites(x['Condition1'], x['Condition2']), axis=1)
+
         # Has basement
         df['HasBasement'] = df['BsmtCond'].apply(lambda x: has_house_feature(x))
+
         # Has Pool
         df['HasPool'] = df['PoolQC'].apply(lambda x: has_house_feature(x))
+
         # Has fence
-        # df['HasFence'] = df['Fence'].apply(lambda x: has_house_feature(x))
+        df['HasFence'] = df['Fence'].apply(lambda x: has_house_feature(x))
+
         # What time of year the house was sold? (winter, summer..)
         df['HouseSaleSeason'] = df['MoSold'].apply(lambda x: sale_season(x))
+
         # House sold in the last 3 years?
         df['SoldInLast3Years'] = df['YrSold'].apply(lambda x: sold_in_last_3years(x))
 
-        df = df.drop(labels=['YrSold', 'MoSold', 'YearRemodAdd', 'YearBuilt', 'HouseStyle', 'Alley', 'Condition1', 'Condition2'], axis=1)
+        df = df.drop(
+            labels=['YrSold', 'MoSold', 'YearRemodAdd', 'YearBuilt', 'HouseStyle', 'Alley', 'Condition1', 'Condition2'],
+            axis=1)
         return df
 
     def pre_process_data(self):
         print('Performing pre-process...')
-        return (self.clean_train_df
-                .pipe(PreProcessor.drop_index_col)
-                .pipe(PreProcessor.drop_empty_cols, int(0.7 * self.clean_train_df.shape[0]))
-                .pipe(PreProcessor.drop_empty_rows, int(0.7 * self.clean_train_df.shape[1]))
-                .pipe(PreProcessor.fill_missing_values)
-                .pipe(PreProcessor.filter_existing_features, self.cols_to_consider, self.target_feature)
-                .pipe(PreProcessor.handle_features)
-                )
+        self.clean_train_df = (self.clean_train_df
+                               .pipe(PreProcessor.drop_index_col)
+                               .pipe(PreProcessor.drop_empty_cols, int(0.7 * self.clean_train_df.shape[0]))
+                               .pipe(PreProcessor.drop_empty_rows, int(0.7 * self.clean_train_df.shape[1]))
+                               .pipe(PreProcessor.fill_missing_values)
+                               .pipe(PreProcessor.filter_existing_features, self.cols_to_consider, self.target_feature)
+                               .pipe(PreProcessor.handle_features)
+                               )
+
+        self.clean_test_df = (self.clean_test_df
+                              .pipe(PreProcessor.drop_index_col)
+                              .pipe(PreProcessor.fill_missing_values)
+                              .pipe(PreProcessor.filter_existing_features, self.cols_to_consider, self.target_feature)
+                              .pipe(PreProcessor.handle_features)
+                              )
+        print_features_info(self.raw_train_df, self.clean_train_df)
+        return

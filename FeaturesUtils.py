@@ -86,5 +86,14 @@ def sold_in_last_3years(sold_year):
     return sold_in_last_years
 
 
+def print_features_info(original_df, new_clean_df):
+    original_cols = original_df.columns
+    current_cols = new_clean_df.columns
+    for col in current_cols:
+        if col in original_cols:
+            print(f">>>>> Existing <{col}> column feature - values: {list(new_clean_df[col].unique())}")
+        else:
+            print(f">>>>> Created <{col}> column feature - values: {list(new_clean_df[col].unique())}")
+
 
 
