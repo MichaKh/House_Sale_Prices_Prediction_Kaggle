@@ -1,7 +1,8 @@
+import numpy as np
 import pandas as pd
 from sklearn import metrics
 from sklearn.feature_selection import SelectFromModel
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, mean_squared_error
 
 from LabelPredictor import LabelPredictor
 
@@ -56,21 +57,19 @@ class Evaluator:
             test_predictions = predictor.predict_with_classifier(test_X=self.test_X, classifier_name=classifier,
                                                                  classifier=trained_clf)
             all_predictions[classifier + '_pred'] = test_predictions
-            curr_model_performance = self.evaluate_performance(self.test_y, test_predictions)
-            print("Aaccuracy of {} alone on test set:{}".format(classifier, curr_model_performance))
 
             # Predict on train set
             test_predictions = predictor.predict_with_classifier(test_X=self.train_X, classifier_name=classifier,
                                                                  classifier=trained_clf)
             curr_model_performance = self.evaluate_performance(self.train_y, test_predictions)
-            print("Aaccuracy of {} alone on train set:{}".format(classifier, curr_model_performance))
+            print("MSE of {} alone on train set:{}".format(classifier, curr_model_performance))
 
             print('-' * 68)
-        final_prediction = self.get_ensemble_majority_vote(all_predictions)
+        final_prediction = self.get_ensemble_average_vote(all_predictions)
         return all_predictions, final_prediction
 
     @staticmethod
-    def get_ensemble_majority_vote(all_predictions):
+    def get_ensemble_majority_vote(all_predictions: dict):
         """
         Get majority vote of all predictions of built classifiers.
         :param all_predictions: Prediction vectors of all trained classifiers.
@@ -85,7 +84,16 @@ class Evaluator:
         return pd.Series(majority_vote_pred)
 
     @staticmethod
-    def evaluate_performance(actual_y, pred_y, performance_metric='accuracy'):
+    def get_ensemble_average_vote(all_predictions: dict):
+        majority_vote_pred = []
+        # zip all lists
+        zipped_list = zip(*all_predictions.values())
+        for l in zipped_list:
+            majority_vote_pred.append(np.mean(l))
+        return pd.Series(majority_vote_pred)
+
+    @staticmethod
+    def evaluate_performance(actual_y, pred_y, performance_metric='mse'):
         """
         Evaluate the performance of predictions on a hold out set with known class labels.
         Three performance measures are supported: accuracy (default), f1-score and AUC.
@@ -98,7 +106,8 @@ class Evaluator:
             'accuracy': lambda actual, pred: accuracy_score(actual, pred, normalize=True),
             'f1': lambda actual, pred: f1_score(actual, pred, average='micro'),
             'auc': lambda actual, pred: metrics.auc(metrics.roc_curve(actual, pred, pos_label=1)[0],
-                                                    metrics.roc_curve(actual, pred, pos_label=1)[1])
+                                                    metrics.roc_curve(actual, pred, pos_label=1)[1]),
+            'mse': lambda actual, pred: mean_squared_error(actual, pred_y)
         }
 
         return performance_metrics[performance_metric](actual_y, pred_y)
@@ -106,15 +115,14 @@ class Evaluator:
     def save_predictions_to_df(self, all_predictions, final_prediction):
         eval_df = pd.DataFrame()
         eval_df = eval_df.append(self.test_X)
-        eval_df['Survived'] = self.test_y
+        eval_df['SalePrice'] = self.test_y
         for clf_pred in all_predictions:
             pred_col = all_predictions[clf_pred]
             eval_df[clf_pred] = pred_col.values
-        eval_df['Survived_pred'] = final_prediction.values
+        eval_df['SalePrice_pred'] = final_prediction.values
         return eval_df
 
-    @staticmethod
-    def save_predictions_for_submission(eval_df):
+    def save_predictions_for_submission(self, eval_df: pd.DataFrame, id_col):
         """
         Save predictions for submission in Kaggle.
         The submission consists of the PassangerId and whether he survived the accident.
@@ -122,6 +130,7 @@ class Evaluator:
         :return: Dataframe for submission
         """
         submission_df = pd.DataFrame()
-        submission_df['PassengerId'] = eval_df.index
-        submission_df['Survived'] = eval_df['Survived_pred'].values
+        eval_df = pd.concat([eval_df, id_col], axis=1)
+        submission_df['Id'] = id_col
+        submission_df['SalePrice'] = eval_df['SalePrice_pred'].values
         return submission_df

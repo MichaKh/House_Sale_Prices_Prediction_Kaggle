@@ -4,7 +4,22 @@ num_stories_dict = {'1Story': '1', '2Story': '2', 'SFoyer': '2', 'SLvl': '3', '1
 proximity_condition_arterial_location = ['Artery', 'RRNn', 'RRAn', 'RRNe', 'RRAe']
 proximity_condition_off_site_location = ['PosN', 'PosA']
 
-month_to_season = {1: 'Winter', 2: 'Winter', 3: 'Spring', 4: 'Spring', 5: 'Spring', 6: 'Summer', 7: 'Summer', 8: 'Summer', 9: 'Autumn', 10: 'Autumn', 11: 'Autumn', 12: 'Winter'}
+month_to_season = {1: 'Winter', 2: 'Winter', 3: 'Spring', 4: 'Spring', 5: 'Spring', 6: 'Summer', 7: 'Summer',
+                   8: 'Summer', 9: 'Autumn', 10: 'Autumn', 11: 'Autumn', 12: 'Winter'}
+features_ordinal_mappings = {'NumOfStories': {'1': 0, '1.5': 1, '2': 2, '2.5': 3, '3': 4},
+                             'LandSlope': {'Gtl': 0, 'Mod': 1, 'Sev': 2},
+                             'LotShape': {'Reg': 0, 'IR1': 1, 'IR2': 2, 'IR3': 3},
+                             'BsmtCond': {'NA': 0, 'Po': 1, 'Fa': 2, 'TA': 3, 'Gd': 4,
+                                          'Ex': 5},
+                             'Fence': {'NA': 0, 'MnWw': 1, 'GdWo': 2, 'MnPrv': 3,
+                                       'GdPrv': 4},
+                             'PoolQC': {'NA': 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4}}
+
+one_hot_encod_features = ['SoldInLast3Years', 'HouseSaleSeason', 'HasFence', 'HasPool',
+                          'HasBasement',
+                          'AdjacentOffSites', 'AdjacentArterial', 'HouseHasAlley',
+                          'HouseWasRenovated', 'RoofStyle',
+                          'CentralAir', 'MSZoning', 'BldgType']
 
 
 def get_num_of_stories(x):
@@ -94,6 +109,3 @@ def print_features_info(original_df, new_clean_df):
             print(f">>>>> Existing <{col}> column feature - values: {list(new_clean_df[col].unique())}")
         else:
             print(f">>>>> Created <{col}> column feature - values: {list(new_clean_df[col].unique())}")
-
-
-

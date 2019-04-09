@@ -1,6 +1,8 @@
 from sklearn.ensemble import RandomForestRegressor
 
 from DataLoader import DataLoader
+from Evaluator import Evaluator
+from FeaturesUtils import features_ordinal_mappings, one_hot_encod_features
 from LabelPredictorUtils import prepare_data
 from PreProcessor import PreProcessor
 
@@ -31,19 +33,22 @@ pre_processor = PreProcessor(raw_train_df,
                              # cols_to_consider=raw_train_df.columns[0:-1],
                              target_feature='SalePrice')
 pre_processor.pre_process_data()
+
 train_X, train_y = prepare_data(pre_processor.clean_train_df,
                                 class_col=pre_processor.target_feature,
                                 reg_encoding_features=[],
-                                one_hot_encoding_features=['SoldInLast3Years', 'HouseSaleSeason', 'HasFence', 'HasPool',
-                                                           'HasBasement',
-                                                           'AdjacentOffSites', 'AdjacentArterial', 'HouseHasAlley',
-                                                           'HouseWasRenovated', 'RoofStyle',
-                                                           'CentralAir', 'MSZoning', 'BldgType'],
-                                ordinal_encoding_features={'NumOfStories': {'1': 0, '1.5': 1, '2': 2, '2.5': 3, '3': 4},
-                                                           'LandSlope': {'Gtl': 0, 'Mod': 1, 'Sev': 2},
-                                                           'LotShape': {'Reg': 0, 'IR1': 1, 'IR2': 2, 'IR3': 3},
-                                                           'BsmtCond': {'NA': 0, 'Po': 1, 'Fa': 2, 'TA': 3, 'Gd': 4,
-                                                                        'Ex': 5},
-                                                           'Fence': {'NA': 0, 'MnWw': 1, 'GdWo': 2, 'MnPrv': 3,
-                                                                     'GdPrv': 4},
-                                                           'PoolQC': {'NA': 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4}})
+                                one_hot_encoding_features=one_hot_encod_features,
+                                ordinal_encoding_features=features_ordinal_mappings)
+
+test_X, test_y = prepare_data(pre_processor.clean_test_df,
+                              class_col=pre_processor.target_feature,
+                              reg_encoding_features=[],
+                              one_hot_encoding_features=one_hot_encod_features,
+                              ordinal_encoding_features=features_ordinal_mappings)
+evaluator = Evaluator(train_X, train_y, test_X, test_y, eval_classifiers, eval_classifiers_params_grid)
+
+all_predictions, final_prediction = evaluator.build_models(grid_search=False)
+evaluation_df = evaluator.save_predictions_to_df(all_predictions, final_prediction)
+submission_df = evaluator.save_predictions_for_submission(evaluation_df, id_col=pre_processor.raw_test_df['Id'])
+evaluation_df.to_csv("test_evaluation_results.csv", index=False)
+submission_df.to_csv("test_submission.csv", index=False)

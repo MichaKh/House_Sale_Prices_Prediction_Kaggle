@@ -115,7 +115,6 @@ class PreProcessor:
                                )
 
         self.clean_test_df = (self.clean_test_df
-                              .pipe(PreProcessor.drop_index_col)
                               .pipe(PreProcessor.fill_missing_values)
                               .pipe(PreProcessor.filter_existing_features, self.cols_to_consider, self.target_feature)
                               .pipe(PreProcessor.handle_features)
