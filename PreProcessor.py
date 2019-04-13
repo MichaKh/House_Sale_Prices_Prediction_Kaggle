@@ -1,6 +1,3 @@
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-
 from FeaturesUtils import *
 
 
@@ -148,5 +145,4 @@ class PreProcessor:
                               .pipe(PreProcessor.filter_existing_features, self.cols_to_consider, self.target_feature)
                               .pipe(PreProcessor.handle_features)
                               )
-        print_features_info(self.raw_train_df, self.clean_train_df)
         return

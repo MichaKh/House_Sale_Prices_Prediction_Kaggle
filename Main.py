@@ -2,10 +2,11 @@ from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor, Gradien
 from xgboost import XGBRegressor
 
 from DataLoader import DataLoader
-from Predictor import Predictor
-from FeaturesUtils import features_ordinal_mappings, one_hot_encod_features, no_enc_features
+from FeaturesUtils import features_ordinal_mappings, one_hot_encod_features, no_enc_features, plot_target_feature, \
+    print_features_info, plot_features_hist, plot_correlation_numeric_features
 from ModelBuilderUtils import prepare_data
 from PreProcessor import PreProcessor
+from Predictor import Predictor
 
 data_dir_root = "./"
 data_train_file = "Data/train.csv"
@@ -17,7 +18,8 @@ eval_classifiers = {
     'XGBoost': XGBRegressor(n_estimators=1000, learning_rate=0.08, gamma=0, subsample=0.75,
                             colsample_bytree=1, max_depth=6, colsample_bylevel=0.6, reg_alpha=1),
     'ExtraTreeReggresor': ExtraTreesRegressor(n_estimators=1000, criterion='mse', max_depth=6, min_samples_leaf=4),
-    'GradientBoostingRegressor': GradientBoostingRegressor(learning_rate=0.2, n_estimators=1000, max_depth=6, subsample=0.3)
+    'GradientBoostingRegressor': GradientBoostingRegressor(learning_rate=0.2, n_estimators=1000, max_depth=6,
+                                                           subsample=0.3)
 }
 
 eval_classifiers_params_grid = {
@@ -52,6 +54,11 @@ def run():
                                  # cols_to_consider=raw_train_df.columns[0:-1],
                                  target_feature='SalePrice')
     pre_processor.pre_process_data()
+
+    print_features_info(pre_processor.raw_train_df, pre_processor.clean_train_df)
+    plot_target_feature(pre_processor.raw_train_df, pre_processor.target_feature)
+    plot_features_hist(pre_processor.raw_train_df)
+    plot_correlation_numeric_features(pre_processor.clean_train_df)
 
     train_X, train_y = prepare_data(pre_processor.clean_train_df,
                                     class_col=pre_processor.target_feature,

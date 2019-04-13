@@ -1,3 +1,7 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
 num_stories_dict = {'1Story': '1', '2Story': '2', 'SFoyer': '2', 'SLvl': '3', '1.5Fin': '1.5', '1.5Unf': '1.5',
                     '2.5Fin': '2.5', '2.5Unf': '2.5'}
 
@@ -27,8 +31,8 @@ one_hot_encod_features = ['SoldInLast3Years', 'HouseSaleSeason', 'HasFence', 'Ha
                           'HouseWasRenovated', 'RoofStyle',
                           'CentralAir', 'MSZoning', 'BldgType', 'Foundation', 'PavedDrive']
 
-no_enc_features = ['GoodGrLivArea', 'GoodGrLivAreaPct', 'NumOfBaths', 'LotArea', 'NumOfBedrooms',
-                   'FinishedBsmntArea', 'FinishedBsmntAreaPct', 'OutdoorAreaSF', 'OutdoorIndoorAreaRatio']
+no_enc_features = ['GoodGrLivAreaPct', 'NumOfBaths', 'LotArea', 'NumOfBedrooms',
+                   'FinishedBsmntAreaPct', 'OutdoorIndoorAreaRatio']
 
 
 def get_num_of_stories(x):
@@ -214,3 +218,52 @@ def print_features_info(original_df, new_clean_df):
             print(f">>>>> Existing <{col}> column feature - values: {list(new_clean_df[col].unique())}")
         else:
             print(f">>>>> Created <{col}> column feature - values: {list(new_clean_df[col].unique())}")
+
+
+def plot_target_feature(original_df, target_feature):
+    original_df.loc[:, target_feature].hist()
+    plt.xlabel(f"{target_feature}")
+    plt.ylabel("Frequency")
+    plt.show()
+
+
+def plot_features_hist(original_df):
+    cols_to_plot = ['LotShape', 'Alley', 'MSZoning', 'HouseStyle', 'CentralAir', 'MasVnrType']
+    features: pd.DataFrame = original_df.loc[:, cols_to_plot]
+    for col in features.columns:
+        features[col] = features[col].astype('category')
+
+    fig, axs = plt.subplots(2, 3)
+    features['LotShape'].value_counts().plot("bar", ax=axs[0, 0]).set_title('LotShape')
+    axs[0, 0].set(xlabel='LotShape', ylabel='Freq')
+    features['Alley'].value_counts().plot("bar", ax=axs[0, 1]).set_title('Alley')
+    axs[0, 1].set(xlabel='Alley', ylabel='Freq')
+    features['MSZoning'].value_counts().plot("bar", ax=axs[0, 2]).set_title('MSZoning')
+    axs[0, 2].set(xlabel='MSZoning', ylabel='Freq')
+    features['HouseStyle'].value_counts().plot("bar", ax=axs[1, 0]).set_title('HouseStyle')
+    axs[1, 0].set(xlabel='HouseStyle', ylabel='Freq')
+    features['CentralAir'].value_counts().plot("bar", ax=axs[1, 1]).set_title('CentralAir')
+    axs[1, 1].set(xlabel='CentralAir', ylabel='Freq')
+    features['MasVnrType'].value_counts().plot("bar", ax=axs[1, 2]).set_title('MasVnrType')
+    axs[1, 2].set(xlabel='MasVnrType', ylabel='Freq')
+
+    fig.show()
+
+
+def plot_correlation_numeric_features(original_df):
+    cols_to_plot = no_enc_features + ['SalePrice']
+    correlations = original_df.loc[:, cols_to_plot].corr()
+
+    # plot correlation matrix
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(correlations, vmin=-1, vmax=1)
+    fig.colorbar(cax)
+    ticks = np.arange(0, len(cols_to_plot), 1)
+    ax.set_xticks(ticks)
+    ax.set_yticks(ticks)
+    plt.xticks(rotation='vertical')
+
+    ax.set_xticklabels(cols_to_plot)
+    ax.set_yticklabels(cols_to_plot)
+    plt.show()
