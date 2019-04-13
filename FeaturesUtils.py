@@ -4,6 +4,9 @@ num_stories_dict = {'1Story': '1', '2Story': '2', 'SFoyer': '2', 'SLvl': '3', '1
 proximity_condition_arterial_location = ['Artery', 'RRNn', 'RRAn', 'RRNe', 'RRAe']
 proximity_condition_off_site_location = ['PosN', 'PosA']
 
+sale_condition_normal = ['Normal', 'AdjLand', 'Alloca', 'Family']
+sale_condition_abnormal = ['Abnorml', 'Partial']
+
 month_to_season = {1: 'Winter', 2: 'Winter', 3: 'Spring', 4: 'Spring', 5: 'Spring', 6: 'Summer', 7: 'Summer',
                    8: 'Summer', 9: 'Autumn', 10: 'Autumn', 11: 'Autumn', 12: 'Winter'}
 features_ordinal_mappings = {'NumOfStories': {'1': 0, '1.5': 1, '2': 2, '2.5': 3, '3': 4},
@@ -13,13 +16,19 @@ features_ordinal_mappings = {'NumOfStories': {'1': 0, '1.5': 1, '2': 2, '2.5': 3
                                           'Ex': 5},
                              'Fence': {'NA': 0, 'MnWw': 1, 'GdWo': 2, 'MnPrv': 3,
                                        'GdPrv': 4},
-                             'PoolQC': {'NA': 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4}}
+                             'PoolQC': {'NA': 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4},
+                             'BsmtQual': {'NA': 0, 'Po': 1, 'Fa': 2, 'TA': 3, 'Gd': 4,
+                                          'Ex': 5},
+                             'ExterCond': {'Po': 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4}}
 
 one_hot_encod_features = ['SoldInLast3Years', 'HouseSaleSeason', 'HasFence', 'HasPool',
                           'HasBasement',
                           'AdjacentOffSites', 'AdjacentArterial', 'HouseHasAlley',
                           'HouseWasRenovated', 'RoofStyle',
-                          'CentralAir', 'MSZoning', 'BldgType']
+                          'CentralAir', 'MSZoning', 'BldgType', 'Foundation', 'PavedDrive']
+
+no_enc_features = ['GoodGrLivArea', 'GoodGrLivAreaPct', 'NumOfBaths', 'LotArea', 'NumOfBedrooms',
+                   'FinishedBsmntArea', 'FinishedBsmntAreaPct', 'OutdoorAreaSF', 'OutdoorIndoorAreaRatio']
 
 
 def get_num_of_stories(x):
@@ -99,6 +108,102 @@ def sold_in_last_3years(sold_year):
     except Exception:
         pass
     return sold_in_last_years
+
+
+def sale_condition_categories(sale_condition):
+    if sale_condition in sale_condition_normal:
+        return 'normal'
+    elif sale_condition in sale_condition_abnormal:
+        return 'abnormal'
+    return 'Unknown'
+
+
+def above_ground_living_sq_feet(gr_liv_area, low_qual_fin_sf):
+    try:
+        good_quality_living_area = int(gr_liv_area) - int(low_qual_fin_sf)
+        if good_quality_living_area > 0:
+            return good_quality_living_area
+        else:
+            return 0
+    except Exception:
+        return 0
+
+
+def above_ground_good_living_area_pct(gr_liv_area, low_qual_fin_sf):
+    try:
+        good_quality_living_area = int(gr_liv_area) - int(low_qual_fin_sf)
+        if good_quality_living_area > 0:
+            good_quality_living_area_pct = good_quality_living_area / gr_liv_area
+            if good_quality_living_area_pct <= 1:
+                return good_quality_living_area_pct
+            else:
+                return 1
+        else:
+            return 0
+    except Exception:
+        return 0
+
+
+def get_num_of_bathrooms(bsmt_full_bath, bsmt_half_bath, full_bath, half_bath):
+    total_num_of_baths = 0
+    try:
+        total_num_of_baths = bsmt_full_bath + bsmt_half_bath + full_bath + half_bath
+    except Exception:
+        pass
+    return total_num_of_baths
+
+
+def get_num_of_bedrooms(bedroom_abv_gr, has_basement):
+    num_of_bedrooms = bedroom_abv_gr
+    if has_basement:
+        num_of_bedrooms += 1
+    return num_of_bedrooms
+
+
+def finished_bsmnt_sq_feet(total_bsmnt_sf, bsmt_unf_sf):
+    try:
+        finished_bsmnt_area = int(total_bsmnt_sf) - int(bsmt_unf_sf)
+        if finished_bsmnt_area > 0:
+            return finished_bsmnt_area
+        else:
+            return 0
+    except Exception:
+        return 0
+
+
+def finished_bsmnt_sq_feet_area_pct(total_bsmnt_sf, bsmt_unf_sf):
+    try:
+        finished_bsmnt_area = int(total_bsmnt_sf) - int(bsmt_unf_sf)
+        if finished_bsmnt_area > 0:
+            finished_bsmnt_area_pct = finished_bsmnt_area / int(total_bsmnt_sf)
+            if finished_bsmnt_area_pct <= 1:
+                return finished_bsmnt_area_pct
+            else:
+                return 1
+        else:
+            return 0
+    except Exception:
+        return 0
+
+
+def get_outdoor_area(wood_deck_sf, open_porch_sf, enclosed_porch, sun_porch, screen_porch, pool_area):
+    outdoor_area = 0
+    try:
+        return int(wood_deck_sf) + int(open_porch_sf) + int(enclosed_porch) + int(sun_porch) + int(screen_porch) + int(pool_area)
+    except Exception:
+        pass
+    return outdoor_area
+
+
+def outdoor_area_pct_from_total_lot_area(outdoor_area_sf, lot_area_sf):
+    try:
+        outdoor_area_pct = int(outdoor_area_sf) / int(lot_area_sf)
+        if outdoor_area_pct <= 1:
+            return outdoor_area_pct
+        else:
+            return 1
+    except Exception:
+        return 0
 
 
 def print_features_info(original_df, new_clean_df):

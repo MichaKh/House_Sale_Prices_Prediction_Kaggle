@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 from FeaturesUtils import *
 
@@ -98,8 +99,36 @@ class PreProcessor:
         # House sold in the last 3 years?
         df['SoldInLast3Years'] = df['YrSold'].apply(lambda x: sold_in_last_3years(x))
 
+        # Reduce Sale condition feature
+        df['SaleCondition'] = df['SaleCondition'].apply(lambda x: sale_condition_categories(x))
+
+        # Good quality above ground square feet
+        df['GoodGrLivArea'] = df[['GrLivArea', 'LowQualFinSF']].apply(lambda x: above_ground_living_sq_feet(x['GrLivArea'], x['LowQualFinSF']), axis=1)
+
+        # Good quality above ground square feet percentage of total above ground living area
+        df['GoodGrLivAreaPct'] = df[['GrLivArea', 'LowQualFinSF']].apply(lambda x: above_ground_good_living_area_pct(x['GrLivArea'], x['LowQualFinSF']), axis=1)
+
+        # Total num of bathrooms
+        df['NumOfBaths'] = df[['BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath']].apply(lambda x: get_num_of_bathrooms(x['BsmtFullBath'], x['BsmtHalfBath'], x['FullBath'], x['HalfBath']), axis=1)
+
+        # Total num of bedrooms
+        df['NumOfBedrooms'] = df[['BedroomAbvGr', 'HasBasement']].apply(lambda x: get_num_of_bedrooms(x['BedroomAbvGr'], x['HasBasement']), axis=1)
+
+        # finished basement area
+        df['FinishedBsmntArea'] = df[['TotalBsmtSF', 'BsmtUnfSF']].apply(lambda x: finished_bsmnt_sq_feet(x['TotalBsmtSF'], x['BsmtUnfSF']), axis=1)
+
+        # finished basement area pct of total basement area
+        df['FinishedBsmntAreaPct'] = df[['TotalBsmtSF', 'BsmtUnfSF']].apply(lambda x: finished_bsmnt_sq_feet_area_pct(x['TotalBsmtSF'], x['BsmtUnfSF']), axis=1)
+
+        # outdoor area in sqaure feet
+        df['OutdoorAreaSF'] = df[['WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'PoolArea']].apply(lambda x: get_outdoor_area(x['WoodDeckSF'], x['OpenPorchSF'], x['EnclosedPorch'], x['3SsnPorch'], x['ScreenPorch'], x['PoolArea']), axis=1)
+
+        # outdoor area pct from total lot area
+        df['OutdoorIndoorAreaRatio'] = df[['OutdoorAreaSF', 'LotArea']].apply(lambda x: outdoor_area_pct_from_total_lot_area(x['OutdoorAreaSF'], x['LotArea']), axis=1)
+
+
         df = df.drop(
-            labels=['YrSold', 'MoSold', 'YearRemodAdd', 'YearBuilt', 'HouseStyle', 'Alley', 'Condition1', 'Condition2'],
+            labels=['YrSold', 'MoSold', 'YearRemodAdd', 'YearBuilt', 'HouseStyle', 'Alley', 'Condition1', 'Condition2', 'GrLivArea', 'LowQualFinSF', 'BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'PoolArea'],
             axis=1)
         return df
 

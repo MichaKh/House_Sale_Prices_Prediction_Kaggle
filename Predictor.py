@@ -1,27 +1,25 @@
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import accuracy_score, f1_score, mean_squared_error
+from sklearn.preprocessing import StandardScaler
 
-from LabelPredictor import LabelPredictor
+from ModelBuilder import ModelBuilder
+from ModelBuilderUtils import fit_standard_scaler, standard_scale_features, filter_train_features
 
 
-class Evaluator:
-    eval_classifiers = {}
-    eval_classifiers_params_grid = {}
-    train_X = None
-    train_y = None
-    test_X = None
-    test_y = None
+class Predictor:
 
     def __init__(self, train_X, train_y, test_X, test_y, eval_classifiers, eval_classifiers_params_grid):
         self.train_X = train_X
         self.train_y = train_y
-        self.test_X = test_X
+        self.test_X = filter_train_features(test_X, train_X.columns)
         self.test_y = test_y
         self.eval_classifiers = eval_classifiers
         self.eval_classifiers_params_grid = eval_classifiers_params_grid
+        self.scaler = fit_standard_scaler(StandardScaler(), train_X)
 
     def select_features(self, selection_clf):
         sfm = SelectFromModel(selection_clf, threshold=0.25)
@@ -33,11 +31,22 @@ class Evaluator:
         self.test_X = self.test_X.loc[:, list(feature_names)]
         print(self.train_X.columns)
 
+    def scale_features(self):
+        transformed_train = standard_scale_features(self.scaler, self.train_X)
+        transformed_test = standard_scale_features(self.scaler, self.test_X)
+        pca = PCA(n_components=40)
+        pca.fit(self.train_X)
+        print(f'||||| PCA performed is fitted on train data with {pca.n_components_} components')
+        transformed_train = pca.transform(transformed_train)
+        transformed_test = pca.transform(transformed_test)
+        return transformed_train, transformed_test
+
     def build_models(self, grid_search=False):
+        train_X, test_X = self.scale_features()
         all_predictions = {}
         for classifier in self.eval_classifiers:
             clf = self.eval_classifiers[classifier]
-            predictor = LabelPredictor(self.train_X, self.train_y, clf)
+            predictor = ModelBuilder(train_X, self.train_y, clf)
             # trained_clf = predictor.train_classifier_stratified_cv_grid_search(classifier_name=classifier,
             #                                                                    classifier=clf,
             #                                                                    grid_search=grid_search,
@@ -54,12 +63,12 @@ class Evaluator:
             #                                                        classifier=clf,
             #                                                        cv_folds=10)
             # Predict on test set
-            test_predictions = predictor.predict_with_classifier(test_X=self.test_X, classifier_name=classifier,
+            test_predictions = predictor.predict_with_classifier(test_X=test_X, classifier_name=classifier,
                                                                  classifier=trained_clf)
             all_predictions[classifier + '_pred'] = test_predictions
 
             # Predict on train set
-            test_predictions = predictor.predict_with_classifier(test_X=self.train_X, classifier_name=classifier,
+            test_predictions = predictor.predict_with_classifier(test_X=train_X, classifier_name=classifier,
                                                                  classifier=trained_clf)
             curr_model_performance = self.evaluate_performance(self.train_y, test_predictions)
             print("MSE of {} alone on train set:{}".format(classifier, curr_model_performance))
@@ -130,7 +139,8 @@ class Evaluator:
         :return: Dataframe for submission
         """
         submission_df = pd.DataFrame()
-        eval_df = pd.concat([eval_df, id_col], axis=1)
+        eval_with_id_df: pd.DataFrame = pd.concat([eval_df, id_col], axis=1)
         submission_df['Id'] = id_col
-        submission_df['SalePrice'] = eval_df['SalePrice_pred'].values
+        rounded_sale_prices = eval_with_id_df['SalePrice_pred'].apply(round)
+        submission_df['SalePrice'] = rounded_sale_prices
         return submission_df

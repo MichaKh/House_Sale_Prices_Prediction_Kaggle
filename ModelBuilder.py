@@ -2,9 +2,10 @@ import time
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score
+from sklearn.preprocessing import StandardScaler
 
 
-class LabelPredictor:
+class ModelBuilder:
     eval_classifier = None
     train_X = None
     train_y = None
@@ -13,6 +14,8 @@ class LabelPredictor:
         self.eval_classifier = eval_classifier
         self.train_X = train_X
         self.train_y = train_y
+
+        self.scaler = StandardScaler()
 
     def train_classifier_stratified_cv_grid_search(self, classifier_name, classifier, grid_search, params_grid=None):
         print('||||| Training classifier: {}'.format(classifier_name))
@@ -36,7 +39,7 @@ class LabelPredictor:
             return None
         else:
             if grid_search and params_grid:
-                grid_classifier = GridSearchCV(classifier, param_grid=params_grid, scoring='accuracy', n_jobs=-1, verbose=1, cv=StratifiedKFold(n_splits=5), refit=True)
+                grid_classifier = GridSearchCV(classifier, param_grid=params_grid, n_jobs=-1, verbose=1, cv=StratifiedKFold(n_splits=5), refit=True)
                 grid_classifier.fit(self.train_X, self.train_y)
                 classifier = grid_classifier.best_estimator_
                 print(f'||||| Best grid search score for classifier {classifier_name} is: {grid_classifier.best_score_}')

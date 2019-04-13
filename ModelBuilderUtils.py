@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-def prepare_data(data_df, class_col, reg_encoding_features, one_hot_encoding_features, ordinal_encoding_features):
+def prepare_data(data_df, class_col, reg_encoding_features, one_hot_encoding_features, ordinal_encoding_features, no_enc_features):
     """
     Split the data to features and label column, i.e., X and y.
     Encode the categorical features to numeric encoding (to fit "sklearn" implementations)
@@ -23,11 +23,12 @@ def prepare_data(data_df, class_col, reg_encoding_features, one_hot_encoding_fea
     if ordinal_encoding_features:
         ordinal_enc = encode_ordinal_map_features(data_X, ordinal_encoding_features)
         prepared_X = pd.concat([prepared_X, ordinal_enc], axis=1)
-
     if reg_encoding_features:
         reg_enc = encode_features(data_X, reg_encoding_features)
         prepared_X = pd.concat([prepared_X, reg_enc], axis=1)
-
+    if no_enc_features:
+        no_enc = data_X.loc[:, no_enc_features]
+        prepared_X = pd.concat([prepared_X, no_enc], axis=1)
     return prepared_X, data_y
 
 
@@ -69,3 +70,18 @@ def encode_ordinal_map_features(data_df: pd.DataFrame, features_to_encode_map: d
     for col, mapping in features_to_encode_map.items():
         encoded_df[col] = data_df[col].replace(mapping)
     return encoded_df
+
+
+def fit_standard_scaler(scaler, data_df: pd.DataFrame):
+    return scaler.fit(data_df)
+
+
+def standard_scale_features(scaler, data_df: pd.DataFrame):
+    return scaler.transform(data_df)
+
+
+def filter_train_features(df, train_feature_cols):
+    if len(df.columns) != len(train_feature_cols):
+        print(f'>>>>> Matching train features to test set - total {len(train_feature_cols)} features columns')
+    return df.loc[:, train_feature_cols]
+
